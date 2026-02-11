@@ -8,6 +8,7 @@ final class HiddenItemsModel: ObservableObject {
 
     let inspector: MenuBarInspector
     private let store: HiddenItemsStore
+    private var permissionPollTimer: Timer?
 
     init(store: HiddenItemsStore, inspector: MenuBarInspector) {
         self.store = store
@@ -19,6 +20,30 @@ final class HiddenItemsModel: ObservableObject {
 
     func refreshPermissions(prompt: Bool = false) {
         hasAccessibilityPermission = AXPermissions.isTrusted(prompt: prompt)
+        if hasAccessibilityPermission {
+            stopPollingPermission()
+        } else {
+            startPollingPermission()
+        }
+    }
+
+    func startPollingPermission() {
+        guard permissionPollTimer == nil else { return }
+        permissionPollTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            let trusted = AXPermissions.isTrusted()
+            if trusted != self.hasAccessibilityPermission {
+                self.hasAccessibilityPermission = trusted
+            }
+            if trusted {
+                self.stopPollingPermission()
+            }
+        }
+    }
+
+    private func stopPollingPermission() {
+        permissionPollTimer?.invalidate()
+        permissionPollTimer = nil
     }
 
     func setPhysicalHideAvailable(_ available: Bool) {
