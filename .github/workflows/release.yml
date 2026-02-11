@@ -48,10 +48,14 @@ jobs:
             **DMG SHA256**: `${{ env.DMG_SHA256 }}`
 
       - name: Update Homebrew Tap
-        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
+          if [[ -z "${GH_TOKEN}" ]]; then
+            echo "HOMEBREW_TAP_TOKEN not set, skipping."
+            exit 0
+          fi
+
           git clone https://x-access-token:${GH_TOKEN}@github.com/younggglcy/homebrew-tap.git
           cd homebrew-tap
 
