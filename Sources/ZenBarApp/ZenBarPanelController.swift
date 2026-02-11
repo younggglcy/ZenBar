@@ -36,7 +36,9 @@ final class ZenBarPanelController {
             },
             onUnhide: { [weak self] item in
                 self?.coordinator.unhide(item: item)
-                self?.hide()
+                if self?.model.items.isEmpty == true {
+                    self?.hide()
+                }
             }
         )
         panel.contentView = NSHostingView(rootView: rootView)

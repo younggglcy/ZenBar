@@ -2,7 +2,7 @@ import AppKit
 
 final class DragMonitor {
     private var monitor: Any?
-    private let onDrop: () -> Void
+    private let onDrop: (MenuBarItem) -> Void
     private let onHoverChanged: (Bool) -> Void
     private let anchorProvider: () -> CGRect?
     private let inspector: MenuBarInspector
@@ -16,7 +16,7 @@ final class DragMonitor {
         anchorProvider: @escaping () -> CGRect?,
         inspector: MenuBarInspector,
         model: HiddenItemsModel,
-        onDrop: @escaping () -> Void = {},
+        onDrop: @escaping (MenuBarItem) -> Void = { _ in },
         onHoverChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.anchorProvider = anchorProvider
@@ -83,7 +83,7 @@ final class DragMonitor {
             if didHide {
                 model.setPhysicalHideAvailable(true)
             }
-            onDrop()
+            onDrop(menuItem)
         default:
             break
         }

@@ -1,12 +1,13 @@
 import SwiftUI
 import AppKit
-import UniformTypeIdentifiers
 
 struct HiddenListView: View {
     @ObservedObject var model: HiddenItemsModel
     let onItemPressed: (HiddenItem) -> Void
     let onUnhide: (HiddenItem) -> Void
-    @State private var draggingId: String?
+    @State private var draggedItem: HiddenItem?
+    @State private var dragOffset: CGSize = .zero
+    @State private var isDraggedOutside: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -56,69 +57,71 @@ struct HiddenListView: View {
     }
 
     private var listView: some View {
-        ScrollView {
-            LazyVStack(spacing: 6) {
-                ForEach(model.items) { item in
-                    HStack {
-                        Image(nsImage: item.icon)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 18, height: 18)
-                            .help(item.displayName)
-                        Spacer(minLength: 0)
+        GeometryReader { geometry in
+            ScrollView {
+                LazyVStack(spacing: 6) {
+                    ForEach(model.items) { item in
+                        itemRow(for: item, in: geometry)
                     }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 6)
-                    .contentShape(Rectangle())
-                    .background(Color(NSColor.controlBackgroundColor).opacity(0.2))
-                    .cornerRadius(6)
-                    .onTapGesture {
-                        onItemPressed(item)
-                    }
-                    .contextMenu {
-                        Button("Unhide") {
-                            onUnhide(item)
-                        }
-                    }
-                    .onDrag {
-                        draggingId = item.id
-                        return NSItemProvider(object: item.id as NSString)
-                    }
-                    .onDrop(of: [UTType.text], delegate: HiddenItemDropDelegate(
-                        target: item,
-                        model: model,
-                        draggingId: $draggingId
-                    ))
                 }
+                .padding(.vertical, 2)
             }
-            .padding(.vertical, 2)
         }
         .frame(height: min(CGFloat(model.items.count) * 36.0 + 8.0, 260))
-    }
-}
-
-private struct HiddenItemDropDelegate: DropDelegate {
-    let target: HiddenItem
-    let model: HiddenItemsModel
-    @Binding var draggingId: String?
-
-    func validateDrop(info: DropInfo) -> Bool {
-        draggingId != nil
+        .coordinateSpace(name: "listArea")
     }
 
-    func dropEntered(info: DropInfo) {
-        guard let draggingId, draggingId != target.id else {
-            return
+    private func itemRow(for item: HiddenItem, in geometry: GeometryProxy) -> some View {
+        let isDragging = draggedItem?.id == item.id
+
+        return HStack {
+            Image(nsImage: item.icon)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 18, height: 18)
+                .help(item.displayName)
+            Spacer(minLength: 0)
         }
-        guard let sourceIndex = model.items.firstIndex(where: { $0.id == draggingId }),
-              let destinationIndex = model.items.firstIndex(where: { $0.id == target.id }) else {
-            return
+        .padding(.vertical, 6)
+        .padding(.horizontal, 6)
+        .contentShape(Rectangle())
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.2))
+        .cornerRadius(6)
+        .opacity(isDragging ? (isDraggedOutside ? 0.3 : 0.6) : 1.0)
+        .offset(isDragging ? dragOffset : .zero)
+        .animation(.interactiveSpring(), value: isDragging)
+        .gesture(
+            DragGesture(minimumDistance: 8, coordinateSpace: .named("listArea"))
+                .onChanged { value in
+                    if draggedItem == nil {
+                        draggedItem = item
+                    }
+                    dragOffset = value.translation
+                    let listBounds = geometry.frame(in: .named("listArea"))
+                    let loc = value.location
+                    isDraggedOutside = loc.x < listBounds.minX || loc.x > listBounds.maxX
+                        || loc.y < listBounds.minY || loc.y > listBounds.maxY
+                }
+                .onEnded { _ in
+                    if isDraggedOutside, let dragged = draggedItem {
+                        onUnhide(dragged)
+                    }
+                    draggedItem = nil
+                    dragOffset = .zero
+                    isDraggedOutside = false
+                }
+        )
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                if draggedItem == nil {
+                    onItemPressed(item)
+                }
+            }
+        )
+        .contextMenu {
+            Button("Unhide") {
+                onUnhide(item)
+            }
         }
-        model.move(from: sourceIndex, to: destinationIndex)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        draggingId = nil
-        return true
     }
 }

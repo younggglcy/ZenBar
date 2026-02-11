@@ -39,9 +39,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             inspector: inspector,
             model: model,
-            onDrop: { [weak self] in
+            onDrop: { [weak self] menuItem in
                 self?.suppressToggleUntil = Date.timeIntervalSinceReferenceDate + 0.35
                 self?.panelController?.hide()
+                if let anchor = self?.statusItem?.anchorFrame {
+                    HideAnimationController.animateHide(of: menuItem, toward: anchor)
+                }
             },
             onHoverChanged: { [weak statusItem] isHovering in
                 statusItem?.setHighlighted(isHovering)
@@ -68,7 +71,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let statusItem, let anchor = statusItem.anchorFrame else {
             return
         }
-        panelController?.toggle(relativeTo: anchor)
+        // If panel is visible, always allow hiding; if no items, don't show
+        if panelController?.isVisible == true {
+            panelController?.hide()
+        } else if let model, !model.items.isEmpty {
+            panelController?.show(relativeTo: anchor)
+        }
     }
 
     private func showStatusMenu() {
