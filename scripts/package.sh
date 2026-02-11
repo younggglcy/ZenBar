@@ -16,6 +16,9 @@ swift build -c release --package-path "$ROOT_DIR"
 
 cp "$BUILD_DIR/$APP_NAME" "$APP_DIR/Contents/MacOS/$APP_NAME"
 cp "$ROOT_DIR/Info.plist" "$APP_DIR/Contents/Info.plist"
+if [[ -f "$ROOT_DIR/assets/ZenBar.icns" ]]; then
+  cp "$ROOT_DIR/assets/ZenBar.icns" "$APP_DIR/Contents/Resources/ZenBar.icns"
+fi
 
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP_DIR/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP_DIR/Contents/Info.plist"

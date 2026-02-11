@@ -8,14 +8,16 @@
     <string>ZenBar</string>
     <key>CFBundleIdentifier</key>
     <string>name.younggglcy.ZenBar</string>
+    <key>CFBundleIconFile</key>
+    <string>ZenBar</string>
     <key>CFBundleName</key>
     <string>ZenBar</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.1.3</string>
+    <string>0.1.4</string>
     <key>CFBundleVersion</key>
-    <string>0.1.3</string>
+    <string>0.1.4</string>
     <key>LSUIElement</key>
     <true/>
     <key>NSHighResolutionCapable</key>
