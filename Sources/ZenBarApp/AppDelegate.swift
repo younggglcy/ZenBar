@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var model: HiddenItemsModel?
     private var coordinator: MenuBarCoordinator?
     private var dragMonitor: DragMonitor?
+    private var suppressToggleUntil: TimeInterval = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let inspector: MenuBarInspector
@@ -25,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let statusItem = ZenBarStatusItem()
         statusItem.onToggle = { [weak self] in
-            self?.togglePanel()
+            self?.handleToggle()
         }
         statusItem.onRightClick = { [weak self] in
             self?.showStatusMenu()
@@ -37,7 +38,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 statusItem?.anchorFrame
             },
             inspector: inspector,
-            model: model
+            model: model,
+            onDrop: { [weak self] in
+                self?.suppressToggleUntil = Date.timeIntervalSinceReferenceDate + 0.35
+                self?.panelController?.hide()
+            },
+            onHoverChanged: { [weak statusItem] isHovering in
+                statusItem?.setHighlighted(isHovering)
+            }
         )
 
         model.refreshPermissions(prompt: true)
@@ -45,6 +53,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         model?.persist()
+    }
+
+    private func handleToggle() {
+        let now = Date.timeIntervalSinceReferenceDate
+        guard now >= suppressToggleUntil else {
+            return
+        }
+        togglePanel()
     }
 
     private func togglePanel() {

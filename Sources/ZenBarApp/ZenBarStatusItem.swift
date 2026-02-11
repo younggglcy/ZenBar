@@ -4,11 +4,15 @@ final class ZenBarStatusItem {
     let statusItem: NSStatusItem
     var onToggle: (() -> Void)?
     var onRightClick: (() -> Void)?
+    private let normalImage: NSImage
+    private let activeImage: NSImage
 
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        normalImage = ZenBarIconRenderer.makeImage(size: 18, highlighted: false)
+        activeImage = ZenBarIconRenderer.makeImage(size: 18, highlighted: true)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "circle.grid.3x3.circle", accessibilityDescription: "ZenBar")
+            button.image = normalImage
             button.image?.isTemplate = true
             button.target = self
             button.action = #selector(handleClick)
@@ -34,5 +38,13 @@ final class ZenBarStatusItem {
         default:
             onToggle?()
         }
+    }
+
+    func setHighlighted(_ highlighted: Bool) {
+        guard let button = statusItem.button else {
+            return
+        }
+        button.image = highlighted ? activeImage : normalImage
+        button.image?.isTemplate = true
     }
 }
