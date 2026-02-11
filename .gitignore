@@ -34,6 +34,7 @@ dist/
 .DS_Store
 ZenBar.xcworkspace/
 assets/AppIcon.iconset/
+scripts/generate_icon.sh
 
 # CocoaPods
 #
