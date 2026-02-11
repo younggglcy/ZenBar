@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Build DMG
+        run: ./scripts/package.sh "${VERSION}"
+
+      - name: Calculate DMG checksum
+        run: |
+          DMG="dist/ZenBar-${VERSION}.dmg"
+          DMG_SHA256=$(shasum -a 256 "$DMG" | cut -d ' ' -f 1)
+          echo "DMG_SHA256=$DMG_SHA256" >> $GITHUB_ENV
+          DMG_SIZE=$(stat -f%z "$DMG")
+          echo "DMG_SIZE=$DMG_SIZE" >> $GITHUB_ENV
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/ZenBar-*.dmg
+          generate_release_notes: true
+          body: |
+            ## Installation
+
+            ### Download DMG
+            Download `ZenBar-${{ env.VERSION }}.dmg` and drag it to Applications.
+
+            ### Homebrew
+            ```bash
+            brew tap younggglcy/tap
+            brew install --cask zenbar
+            ```
+
+            ---
+            **DMG SHA256**: `${{ env.DMG_SHA256 }}`
+
+      - name: Update Homebrew Tap
+        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          git clone https://x-access-token:${GH_TOKEN}@github.com/younggglcy/homebrew-tap.git
+          cd homebrew-tap
+
+          cat > Casks/zenbar.rb << 'CASK_EOF'
+          cask "zenbar" do
+            version "${{ env.VERSION }}"
+            sha256 "${{ env.DMG_SHA256 }}"
+
+            url "https://github.com/younggglcy/ZenBar/releases/download/v#{version}/ZenBar-#{version}.dmg"
+            name "ZenBar"
+            desc "Minimal menubar icon manager"
+            homepage "https://github.com/younggglcy/ZenBar"
+
+            livecheck do
+              url :url
+              strategy :github_latest
+            end
+
+            app "ZenBar.app"
+
+            zap trash: [
+              "~/Library/Caches/ZenBar",
+              "~/Library/Preferences/name.younggglcy.ZenBar.plist",
+            ]
+          end
+          CASK_EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/zenbar.rb
+          git commit -m "Update zenbar to ${{ env.VERSION }}" || echo "No changes"
+          git push
