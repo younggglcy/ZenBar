@@ -17,7 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let store = HiddenItemsStore()
         let model = HiddenItemsModel(store: store, inspector: inspector)
-        let coordinator = MenuBarCoordinator(model: model, inspector: inspector)
+        let coordinator = MenuBarCoordinator(model: model)
         let panelController = ZenBarPanelController(model: model, coordinator: coordinator)
 
         self.model = model
@@ -37,7 +37,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             anchorProvider: { [weak statusItem] in
                 statusItem?.anchorFrame
             },
-            inspector: inspector,
             model: model,
             onDrop: { [weak self] menuItem in
                 self?.suppressToggleUntil = Date.timeIntervalSinceReferenceDate + 0.35
@@ -71,10 +70,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let statusItem, let anchor = statusItem.anchorFrame else {
             return
         }
-        // If panel is visible, always allow hiding; if no items, don't show
+        // Always allow hiding; show if there are items OR permission is missing (to show banner)
         if panelController?.isVisible == true {
             panelController?.hide()
-        } else if let model, !model.items.isEmpty {
+        } else if let model, !model.items.isEmpty || !model.hasAccessibilityPermission {
             panelController?.show(relativeTo: anchor)
         }
     }

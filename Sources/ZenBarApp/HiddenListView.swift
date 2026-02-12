@@ -29,7 +29,7 @@ struct HiddenListView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Accessibility permission required")
                 .font(.system(size: 12, weight: .semibold))
-            Text("Enable it in Settings. If already enabled, toggle it off and on again.")
+            Text("If already enabled, remove ZenBar from the list and add it again.")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
             Button("Open Accessibility Settings") {

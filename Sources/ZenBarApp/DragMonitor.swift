@@ -5,7 +5,6 @@ final class DragMonitor {
     private let onDrop: (MenuBarItem) -> Void
     private let onHoverChanged: (Bool) -> Void
     private let anchorProvider: () -> CGRect?
-    private let inspector: MenuBarInspector
     private let model: HiddenItemsModel
     private var dragStartLocation: CGPoint?
     private var isDragging: Bool = false
@@ -14,13 +13,11 @@ final class DragMonitor {
 
     init(
         anchorProvider: @escaping () -> CGRect?,
-        inspector: MenuBarInspector,
         model: HiddenItemsModel,
         onDrop: @escaping (MenuBarItem) -> Void = { _ in },
         onHoverChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.anchorProvider = anchorProvider
-        self.inspector = inspector
         self.model = model
         self.onDrop = onDrop
         self.onHoverChanged = onHoverChanged
@@ -75,11 +72,11 @@ final class DragMonitor {
             guard isInsideAnchor(location) else {
                 return
             }
-            guard let menuItem = inspector.menuBarItem(at: location) else {
+            guard let menuItem = model.inspector.menuBarItem(at: location) else {
                 return
             }
             model.addHiddenItem(from: menuItem)
-            let didHide = inspector.hide(item: menuItem)
+            let didHide = model.inspector.hide(item: menuItem)
             if didHide {
                 model.setPhysicalHideAvailable(true)
             }
