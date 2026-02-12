@@ -13,6 +13,10 @@ final class MenuBarCoordinator {
 
     /// Hide a menu bar item by moving it to the left of the separator.
     func hide(menuBarItem: MenuBarItem) {
+        // Ensure separator is expanded before moving
+        if separator.state != .hideItems {
+            separator.setState(.hideItems)
+        }
         guard let separatorFrame = separator.windowFrame else {
             return
         }
@@ -53,6 +57,11 @@ final class MenuBarCoordinator {
 
     /// On launch, move all persisted hidden items to the left of the separator.
     func reconcileHiddenItemsOnLaunch() {
+        guard !model.items.isEmpty else {
+            return
+        }
+        // Expand separator first, then move items into the hidden zone
+        separator.setState(.hideItems)
         guard let separatorFrame = separator.windowFrame else {
             return
         }

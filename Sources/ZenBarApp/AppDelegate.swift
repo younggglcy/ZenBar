@@ -10,11 +10,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var suppressToggleUntil: TimeInterval = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 1. Separator created FIRST — macOS places it leftmost
+        // 1. Toggle created FIRST — first-created NSStatusItem gets the rightmost position
+        let statusItem = ZenBarStatusItem()
+        statusItem.onToggle = { [weak self] in
+            self?.handleToggle()
+        }
+        statusItem.onRightClick = { [weak self] in
+            self?.showStatusMenu()
+        }
+        self.statusItem = statusItem
+
+        // 2. Separator created SECOND — appears to the LEFT of toggle, pushes hidden items off-screen
         let separator = SeparatorItem()
         self.separator = separator
 
-        // 2. Inspector, mover, store, model
+        // 3. Inspector, mover, store, model
         let inspector = AXMenuBarInspector()
         let mover = MenuBarItemMover()
         let store = HiddenItemsStore()
@@ -25,16 +35,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.model = model
         self.coordinator = coordinator
         self.panelController = panelController
-
-        // 3. Status item created LAST — macOS places it rightmost
-        let statusItem = ZenBarStatusItem()
-        statusItem.onToggle = { [weak self] in
-            self?.handleToggle()
-        }
-        statusItem.onRightClick = { [weak self] in
-            self?.showStatusMenu()
-        }
-        self.statusItem = statusItem
 
         // 4. Drag monitor
         dragMonitor = DragMonitor(

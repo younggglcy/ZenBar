@@ -10,10 +10,11 @@ final class SeparatorItem {
     private static let collapsedLength: CGFloat = 0
 
     let statusItem: NSStatusItem
-    private(set) var state: HidingState = .hideItems
+    private(set) var state: HidingState = .showItems
 
     init() {
-        statusItem = NSStatusBar.system.statusItem(withLength: Self.expandedLength)
+        // Start collapsed — expand only after reconciliation moves items into hidden zone
+        statusItem = NSStatusBar.system.statusItem(withLength: Self.collapsedLength)
         statusItem.autosaveName = "ZenBarSeparator"
         // Make the button invisible
         if let button = statusItem.button {
