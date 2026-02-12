@@ -4,9 +4,8 @@ import Combine
 final class HiddenItemsModel: ObservableObject {
     @Published private(set) var items: [HiddenItem]
     @Published private(set) var hasAccessibilityPermission: Bool
-    @Published private(set) var canPhysicallyHide: Bool
 
-    private(set) var inspector: MenuBarInspector
+    let inspector: MenuBarInspector
     private let store: HiddenItemsStore
     private var permissionPollTimer: Timer?
 
@@ -15,7 +14,6 @@ final class HiddenItemsModel: ObservableObject {
         self.inspector = inspector
         self.items = store.load().sorted { $0.hiddenOrder < $1.hiddenOrder }
         self.hasAccessibilityPermission = AXPermissions.isTrusted()
-        self.canPhysicallyHide = inspector.capabilities.canHide
     }
 
     func refreshPermissions(prompt: Bool = false) {
@@ -23,10 +21,7 @@ final class HiddenItemsModel: ObservableObject {
         hasAccessibilityPermission = AXPermissions.isTrusted(prompt: prompt)
         if hasAccessibilityPermission {
             stopPollingPermission()
-            if !wasTrusted {
-                upgradeInspector()
-            }
-        } else {
+        } else if !wasTrusted {
             startPollingPermission()
         }
     }
@@ -42,9 +37,6 @@ final class HiddenItemsModel: ObservableObject {
             }
             if trusted {
                 self.stopPollingPermission()
-                if !wasTrusted {
-                    self.upgradeInspector()
-                }
             }
         }
     }
@@ -52,21 +44,6 @@ final class HiddenItemsModel: ObservableObject {
     private func stopPollingPermission() {
         permissionPollTimer?.invalidate()
         permissionPollTimer = nil
-    }
-
-    /// Re-probe for PrivateMenuBarInspector after AX permission is granted.
-    private func upgradeInspector() {
-        guard !inspector.capabilities.canHide else { return }
-        if let privateInspector = PrivateMenuBarInspector(axInspector: AXMenuBarInspector()) {
-            inspector = privateInspector
-            canPhysicallyHide = privateInspector.capabilities.canHide
-        }
-    }
-
-    func setPhysicalHideAvailable(_ available: Bool) {
-        if available && !canPhysicallyHide {
-            canPhysicallyHide = true
-        }
     }
 
     func addHiddenItem(from menuBarItem: MenuBarItem) {

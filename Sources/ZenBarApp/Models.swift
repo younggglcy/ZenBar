@@ -35,9 +35,5 @@ struct MenuBarItem {
     let axElement: AXUIElement?
     let pid: pid_t
     let position: CGPoint?
-}
-
-struct MenuBarCapabilities {
-    let canHide: Bool
-    let canReorder: Bool
+    let windowID: CGWindowID?
 }

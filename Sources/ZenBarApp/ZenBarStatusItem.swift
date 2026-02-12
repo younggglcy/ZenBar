@@ -9,6 +9,7 @@ final class ZenBarStatusItem {
 
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        statusItem.autosaveName = "ZenBarToggle"
         normalImage = ZenBarIconRenderer.makeImage(size: 18, highlighted: false)
         activeImage = ZenBarIconRenderer.makeImage(size: 18, highlighted: true)
         if let button = statusItem.button {

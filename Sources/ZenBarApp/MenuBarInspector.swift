@@ -2,17 +2,13 @@ import AppKit
 import ApplicationServices
 
 protocol MenuBarInspector {
-    var capabilities: MenuBarCapabilities { get }
     func menuBarItem(at point: CGPoint) -> MenuBarItem?
     func menuBarItem(for bundleId: String) -> MenuBarItem?
     func snapshotMenuBarItems() -> [MenuBarItem]
     func press(item: MenuBarItem)
-    func hide(item: MenuBarItem) -> Bool
-    func show(item: MenuBarItem, restorePosition: CGPoint?) -> Bool
 }
 
 final class AXMenuBarInspector: MenuBarInspector {
-    let capabilities = MenuBarCapabilities(canHide: false, canReorder: false)
     private let systemWide = AXUIElementCreateSystemWide()
     private var cacheByBundleId: [String: MenuBarItem] = [:]
 
@@ -69,14 +65,6 @@ final class AXMenuBarInspector: MenuBarInspector {
         AXUIElementPerformAction(element, kAXPressAction as CFString)
     }
 
-    func hide(item: MenuBarItem) -> Bool {
-        setHidden(true, for: item)
-    }
-
-    func show(item: MenuBarItem, restorePosition: CGPoint?) -> Bool {
-        setHidden(false, for: item)
-    }
-
     private func cache(_ item: MenuBarItem) {
         guard let bundleId = item.bundleId else {
             return
@@ -125,6 +113,10 @@ final class AXMenuBarInspector: MenuBarInspector {
         let image = running?.icon
         let position = copyPointAttribute(element, kAXPositionAttribute as CFString)
         let id = bundleId ?? "pid:\(pid)"
+
+        // Match to a CGWindowID for CGEvent targeting
+        let windowID: CGWindowID? = position.flatMap { MenuBarWindowInfo.windowID(forPID: pid, near: $0) }
+
         return MenuBarItem(
             id: id,
             bundleId: bundleId,
@@ -132,17 +124,9 @@ final class AXMenuBarInspector: MenuBarInspector {
             image: image,
             axElement: element,
             pid: pid,
-            position: position
+            position: position,
+            windowID: windowID
         )
-    }
-
-    private func setHidden(_ hidden: Bool, for item: MenuBarItem) -> Bool {
-        guard let element = item.axElement else {
-            return false
-        }
-        let value: CFTypeRef = hidden ? kCFBooleanTrue! : kCFBooleanFalse!
-        let result = AXUIElementSetAttributeValue(element, kAXHiddenAttribute as CFString, value)
-        return result == .success
     }
 }
 

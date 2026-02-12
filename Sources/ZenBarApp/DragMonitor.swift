@@ -5,7 +5,8 @@ final class DragMonitor {
     private let onDrop: (MenuBarItem) -> Void
     private let onHoverChanged: (Bool) -> Void
     private let anchorProvider: () -> CGRect?
-    private let model: HiddenItemsModel
+    private let coordinator: MenuBarCoordinator
+    private let inspector: MenuBarInspector
     private var dragStartLocation: CGPoint?
     private var isDragging: Bool = false
     private var isHovering: Bool = false
@@ -13,12 +14,14 @@ final class DragMonitor {
 
     init(
         anchorProvider: @escaping () -> CGRect?,
-        model: HiddenItemsModel,
+        coordinator: MenuBarCoordinator,
+        inspector: MenuBarInspector,
         onDrop: @escaping (MenuBarItem) -> Void = { _ in },
         onHoverChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.anchorProvider = anchorProvider
-        self.model = model
+        self.coordinator = coordinator
+        self.inspector = inspector
         self.onDrop = onDrop
         self.onHoverChanged = onHoverChanged
         start()
@@ -72,18 +75,24 @@ final class DragMonitor {
             guard isInsideAnchor(location) else {
                 return
             }
-            guard let menuItem = model.inspector.menuBarItem(at: location) else {
+            // Identify the item at the drag start location (where the user picked it up)
+            guard let startLocation = dragStartLocation,
+                  let menuItem = inspector.menuBarItem(at: convertToAXCoordinates(startLocation)) else {
                 return
             }
-            model.addHiddenItem(from: menuItem)
-            let didHide = model.inspector.hide(item: menuItem)
-            if didHide {
-                model.setPhysicalHideAvailable(true)
-            }
+            coordinator.hide(menuBarItem: menuItem)
             onDrop(menuItem)
         default:
             break
         }
+    }
+
+    /// Convert NSEvent screen coordinates (bottom-left origin) to AX coordinates (top-left origin).
+    private func convertToAXCoordinates(_ point: CGPoint) -> CGPoint {
+        guard let screenHeight = NSScreen.main?.frame.height else {
+            return point
+        }
+        return CGPoint(x: point.x, y: screenHeight - point.y)
     }
 
     private func isInsideAnchor(_ location: CGPoint) -> Bool {

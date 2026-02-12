@@ -6,24 +6,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var model: HiddenItemsModel?
     private var coordinator: MenuBarCoordinator?
     private var dragMonitor: DragMonitor?
+    private var separator: SeparatorItem?
     private var suppressToggleUntil: TimeInterval = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let inspector: MenuBarInspector
-        if let privateInspector = PrivateMenuBarInspector() {
-            inspector = privateInspector
-        } else {
-            inspector = AXMenuBarInspector()
-        }
+        // 1. Separator created FIRST — macOS places it leftmost
+        let separator = SeparatorItem()
+        self.separator = separator
+
+        // 2. Inspector, mover, store, model
+        let inspector = AXMenuBarInspector()
+        let mover = MenuBarItemMover()
         let store = HiddenItemsStore()
         let model = HiddenItemsModel(store: store, inspector: inspector)
-        let coordinator = MenuBarCoordinator(model: model)
+        let coordinator = MenuBarCoordinator(model: model, mover: mover, separator: separator)
         let panelController = ZenBarPanelController(model: model, coordinator: coordinator)
 
         self.model = model
         self.coordinator = coordinator
         self.panelController = panelController
 
+        // 3. Status item created LAST — macOS places it rightmost
         let statusItem = ZenBarStatusItem()
         statusItem.onToggle = { [weak self] in
             self?.handleToggle()
@@ -33,11 +36,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.statusItem = statusItem
 
+        // 4. Drag monitor
         dragMonitor = DragMonitor(
             anchorProvider: { [weak statusItem] in
                 statusItem?.anchorFrame
             },
-            model: model,
+            coordinator: coordinator,
+            inspector: inspector,
             onDrop: { [weak self] menuItem in
                 self?.suppressToggleUntil = Date.timeIntervalSinceReferenceDate + 0.35
                 self?.panelController?.hide()
@@ -51,6 +56,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         model.refreshPermissions(prompt: true)
+
+        // 5. Reconcile persisted hidden items after a delay (apps need time to load their status items)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak coordinator] in
+            coordinator?.reconcileHiddenItemsOnLaunch()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -70,7 +80,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let statusItem, let anchor = statusItem.anchorFrame else {
             return
         }
-        // Always allow hiding; show if there are items OR permission is missing (to show banner)
         if panelController?.isVisible == true {
             panelController?.hide()
         } else if let model, !model.items.isEmpty || !model.hasAccessibilityPermission {
@@ -91,12 +100,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             let item = NSMenuItem(title: "Enable Accessibility", action: #selector(openAccessibilitySettings), keyEquivalent: "")
             item.target = self
-            menu.addItem(item)
-        }
-
-        if !model.canPhysicallyHide {
-            let item = NSMenuItem(title: "Limited mode: icons not physically hidden", action: nil, keyEquivalent: "")
-            item.isEnabled = false
             menu.addItem(item)
         }
 

@@ -47,7 +47,7 @@ struct HiddenListView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Drag menu bar icons onto ZenBar")
                 .font(.system(size: 12, weight: .semibold))
-            Text("Hold Command while dragging, then drop on ZenBar.")
+            Text("Drag any status bar icon and drop it on the ZenBar icon to hide it.")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
         }
