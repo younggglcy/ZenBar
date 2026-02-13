@@ -1,0 +1,25 @@
+name: PR Build
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build DMG
+        run: |
+          PR_NUM=${{ github.event.pull_request.number }}
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          VERSION="0.0.0-pr.${PR_NUM}.${SHORT_SHA}"
+          ./scripts/package.sh "${VERSION}"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZenBar-PR-${{ github.event.pull_request.number }}
+          path: dist/*.dmg
+          retention-days: 7
