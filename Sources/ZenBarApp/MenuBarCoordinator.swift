@@ -26,7 +26,7 @@ final class MenuBarCoordinator {
 
     /// Press (activate) a hidden item — temporarily collapse separator so item is on-screen.
     func press(item: HiddenItem) {
-        guard let menuItem = model.inspector.menuBarItem(for: item.bundleId) else {
+        guard let menuItem = model.inspector.menuBarItem(for: item.bundleId, title: item.title) else {
             return
         }
         // Temporarily show all items so AXPress can reach the off-screen item
@@ -34,7 +34,7 @@ final class MenuBarCoordinator {
         // Brief delay for the menu bar to re-layout
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
             // Re-fetch to get updated position after separator collapse
-            if let freshItem = self?.model.inspector.menuBarItem(for: item.bundleId) {
+            if let freshItem = self?.model.inspector.menuBarItem(for: item.bundleId, title: item.title) {
                 self?.model.inspector.press(item: freshItem)
             } else {
                 self?.model.inspector.press(item: menuItem)
@@ -48,7 +48,7 @@ final class MenuBarCoordinator {
 
     /// Unhide an item by moving it to the right of the separator.
     func unhide(item: HiddenItem) {
-        if let menuItem = model.inspector.menuBarItem(for: item.bundleId),
+        if let menuItem = model.inspector.menuBarItem(for: item.bundleId, title: item.title),
            let separatorFrame = separator.windowFrame {
             mover.move(item: menuItem, to: .rightOfSeparator(separatorFrame: separatorFrame))
         }
@@ -66,7 +66,7 @@ final class MenuBarCoordinator {
             return
         }
         for hiddenItem in model.items {
-            if let menuItem = model.inspector.menuBarItem(for: hiddenItem.bundleId) {
+            if let menuItem = model.inspector.menuBarItem(for: hiddenItem.bundleId, title: hiddenItem.title) {
                 mover.move(item: menuItem, to: .leftOfSeparator(separatorFrame: separatorFrame))
             }
         }

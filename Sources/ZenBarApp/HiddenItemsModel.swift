@@ -50,8 +50,16 @@ final class HiddenItemsModel: ObservableObject {
         guard let bundleId = menuBarItem.bundleId ?? menuBarItem.title else {
             return
         }
-        if let index = items.firstIndex(where: { $0.bundleId == bundleId }) {
+        let itemTitle = menuBarItem.title
+
+        // Dedup: match by bundleId + title. If existing item has nil title (old format), update it.
+        if let index = items.firstIndex(where: {
+            $0.bundleId == bundleId && ($0.title == itemTitle || $0.title == nil)
+        }) {
             items[index].lastSeen = Date()
+            if items[index].title == nil && itemTitle != nil {
+                items[index].title = itemTitle
+            }
             if items[index].iconData == nil, let icon = menuBarItem.image {
                 items[index].iconData = icon.pngData()
             }
@@ -63,12 +71,14 @@ final class HiddenItemsModel: ObservableObject {
             return
         }
 
+        let compoundId = itemTitle.map { "\(bundleId):\($0)" } ?? bundleId
         let displayName = menuBarItem.title ?? bundleId
         let iconData = menuBarItem.image?.pngData()
         let newItem = HiddenItem(
-            id: bundleId,
+            id: compoundId,
             bundleId: bundleId,
             displayName: displayName,
+            title: itemTitle,
             iconData: iconData,
             hiddenOrder: items.count,
             lastSeen: Date(),

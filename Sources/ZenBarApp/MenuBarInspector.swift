@@ -4,13 +4,13 @@ import ApplicationServices
 protocol MenuBarInspector {
     func menuBarItem(at point: CGPoint) -> MenuBarItem?
     func menuBarItem(for bundleId: String) -> MenuBarItem?
+    func menuBarItem(for bundleId: String, title: String?) -> MenuBarItem?
     func snapshotMenuBarItems() -> [MenuBarItem]
     func press(item: MenuBarItem)
 }
 
 final class AXMenuBarInspector: MenuBarInspector {
     private let systemWide = AXUIElementCreateSystemWide()
-    private var cacheByBundleId: [String: MenuBarItem] = [:]
 
     func menuBarItem(at point: CGPoint) -> MenuBarItem? {
         var element: AXUIElement?
@@ -24,15 +24,21 @@ final class AXMenuBarInspector: MenuBarInspector {
         guard let item = makeMenuBarItem(from: menuElement) else {
             return nil
         }
-        cache(item)
         return item
     }
 
     func menuBarItem(for bundleId: String) -> MenuBarItem? {
-        if let cached = cacheByBundleId[bundleId] {
-            return cached
-        }
         let items = snapshotMenuBarItems()
+        return items.first { $0.bundleId == bundleId }
+    }
+
+    func menuBarItem(for bundleId: String, title: String?) -> MenuBarItem? {
+        let items = snapshotMenuBarItems()
+        if let title {
+            if let match = items.first(where: { $0.bundleId == bundleId && $0.title == title }) {
+                return match
+            }
+        }
         return items.first { $0.bundleId == bundleId }
     }
 
@@ -52,7 +58,6 @@ final class AXMenuBarInspector: MenuBarInspector {
             guard let item = makeMenuBarItem(from: menuElement) else {
                 continue
             }
-            cache(item)
             items.append(item)
         }
         return items
@@ -63,13 +68,6 @@ final class AXMenuBarInspector: MenuBarInspector {
             return
         }
         AXUIElementPerformAction(element, kAXPressAction as CFString)
-    }
-
-    private func cache(_ item: MenuBarItem) {
-        guard let bundleId = item.bundleId else {
-            return
-        }
-        cacheByBundleId[bundleId] = item
     }
 
     private func normalizeMenuBarItem(_ element: AXUIElement) -> AXUIElement? {

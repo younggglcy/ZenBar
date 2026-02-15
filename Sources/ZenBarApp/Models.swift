@@ -4,6 +4,7 @@ struct HiddenItem: Identifiable, Codable, Equatable {
     let id: String
     let bundleId: String
     var displayName: String
+    var title: String?
     var iconData: Data?
     var hiddenOrder: Int
     var lastSeen: Date
