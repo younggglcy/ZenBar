@@ -56,6 +56,9 @@ jobs:
             exit 0
           fi
 
+          SOURCE_REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          SOURCE_RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
           git clone https://x-access-token:${GH_TOKEN}@github.com/younggglcy/homebrew-tap.git
           cd homebrew-tap
 
@@ -90,5 +93,18 @@ jobs:
           export GIT_COMMITTER_NAME="younggglcy"
           export GIT_COMMITTER_EMAIL="younggglcy@gmail.com"
           git add Casks/zenbar.rb
-          git commit -m "Update zenbar to ${{ env.VERSION }}" || echo "No changes"
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+
+          COMMIT_BODY=$(cat <<EOF
+          Source repo: ${SOURCE_REPO_URL}
+          Workflow run: ${SOURCE_RUN_URL}
+          DMG: ${SOURCE_REPO_URL}/releases/download/v${{ env.VERSION }}/ZenBar-${{ env.VERSION }}.dmg
+          SHA256: ${{ env.DMG_SHA256 }}
+          EOF
+          )
+
+          git commit -m "Update zenbar to ${{ env.VERSION }}" -m "${COMMIT_BODY}"
           git push
